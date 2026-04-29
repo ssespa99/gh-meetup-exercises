@@ -1,0 +1,35 @@
+name: 10-the-production-gate
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: dev       # no gates, deploys immediately
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/deploy.sh dev
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging   # CI required, no manual approval
+    needs: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/deploy.sh staging
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production  # PAUSES for human approval
+    needs: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/deploy.sh production
+
+# When reaching deploy-production, GitHub:
+#   1. Notifies required reviewers
+#   2. Waits up to 30 days for approval
+#   3. Starts 5-minute wait timer after approval
+#   4. Only then runs the deploy step
